@@ -7,6 +7,7 @@ You should use the data stored in the repo, "prepared2019predictors-2020-08-10.R
 - "Adding in new data" is an R Markdown file that appends data for each country in 2019 to the prepared data through 2018.
 - The input folder contains the data prepared through 2018 from last year's analysis: "prepared2018predictors_2_11_20.RData"
 - The output folder contains the prepared data, updated through 2019: "prepared2019predictors-2020-08-10.RData"
+- The output folder also contains an updated file with just the mass killing variables: "mkl_data.csv"
 
 The main files of interest are likely in the Modelling folder. 
 
