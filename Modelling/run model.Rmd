@@ -1,5 +1,5 @@
 ---
-title: "SRA 2018-based"
+title: "SRA 2019-based"
 author: "Julia Levine, Chad Hazlett"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
@@ -15,9 +15,9 @@ library(data.table)
 library(ggplot2)
 library(reshape2)
 library(knitr)
-# library(rworldmap)
-# library(Hmisc)
+
 ```
+
 \newpage
 
 # Dataset Documentation
@@ -81,9 +81,7 @@ The following variables have not been updated since 2016: e_migdppc, e_mgdpgro, 
 - SP.POP.TOTL- Population, total
 - SP.DYN.IMRT.IN - Infant mortality rate
 
-### Notes
-
-Infant mortality rate has not yet been updated for 2018 (as of 7/1/19), so these values have been carried forward from 2017. However, because the infant mortality rate data was not updated at the time of building the 2016-2017 data-set, these values are actually carried forward from 2015. Data are now available for 2016 and 2017 if we wished to update that, however, it may change our forecasts. 
+ 
 
 ## Uppsala Conflict Data Program
 
@@ -107,9 +105,7 @@ This annual report published on the EWP website is used to update data on mass k
 - anymk.ongoing
 - anymk.ever
 
-### Notes
 
-The only update is the ending of the Sudan event, backdated to end in 2016.
 
 ## Coup Data
 
@@ -119,11 +115,11 @@ The only update is the ending of the Sudan event, backdated to end in 2016.
 
 ### Notes
 
-There were no new coups in 2018, but Gabon and Sudan both had coups in 2019.
+Gabon and Sudan both had coups in 2019.
 
 ## CIA Factbook
 
-The CIA Factbook is used to fill in data on population size, trade-share, and GDP per capita growth. Because the CIA Factbook has not been updated for 2018, countries that were missing these variables have been filled in with their 2017 values. This is a temporary fix until the CIA Factbook is updated later in 2019. 
+The CIA Factbook is used to fill in data on population size, trade-share, and GDP per capita growth if its estimates are more recent than the last present value from the WDI data.
 
 \newpage
 
@@ -166,7 +162,7 @@ dat <- fread("../Make data/output/prepared2019predictors-2020-08-10.csv")
 
 
 # run the model and save the output
-# base_years <- c("2016", "2017", "2018")
+
 base_years <- c("2018", "2019")
 results <- lapply(base_years, 
                   function(x) format_results(dat = dat, base_year = x))
@@ -193,92 +189,6 @@ for(i in 1:length(results)){
 }
 
 
-```
-### include polity2 and durable variables
-
-```{r}
-predictornames <- c(predictornames, "polity2.fl.2","polity2.fl.3", "durable.ln")
-
-dat <- fread("../Make data/output/prepared2019predictors-2020-08-10.csv")
-
-
-# run the model and save the output
-base_years <- c("2019")
-results <- lapply(base_years, 
-                  function(x) format_results(dat = dat, base_year = x))
-names(results) <- paste0("base", base_years)
-list2env(results, .GlobalEnv)
-
-
-for(i in 1:length(results)){
-  write.csv(results[[i]][1], paste("results/", names(results)[i], "-run-", 
-                       Sys.Date(),"wpolity.csv" , sep = ""), 
-            row.names = FALSE)
-}
-
-for(i in 1:length(results)){
-  write.csv(results[[i]][2], paste("results/", names(results)[i], "-coeffs-run-", 
-                       Sys.Date(),"wpolity.csv" , sep = ""), 
-            row.names = FALSE)
-}
-
-for(i in 1:length(results)){
-    cv.glmnet <- results[[i]][[3]]
-  save(cv.glmnet, predictornames, file=paste("results/", names(results)[i], "-cv.glmnet-", 
-                       Sys.Date(),"wpolity.Rdata" , sep = ""))
-}
-
-```
-
-
-
-#### compare predicted risk with and without polity vars
-
-
-
-
-
-```{r}
-wpolity <- fread("results/base2019-run-2020-08-19wpolity.csv")
-wopolity <- fread("results/base2019-run-2020-08-18.csv")
-
-dat <- list(wpolity, wopolity)
-dat <- lapply(dat, function(x) subset(x, select = c("country", "risk_in_2020", "risk_in_2020_21")))
-names(dat) <- c("wpolity", "wopolity")
-dat <- lapply(1:length(dat), function(x) dat[[x]][, source := names(dat)[x]])
-dat <- rbindlist(dat)
-
-setkey(dat, source, risk_in_2020_21)
-
-dat[, rank := .N:1, by = "source"]
-dat[, country.factor := paste0("r", rank[source == "wopolity"], "_", country), by = "country"]
-
-order.by.rank <- sapply(c(1:162), function(x) unique(grep(paste0("r", x, "_"), dat$country.factor, value = T)))
-dat[, country.factor := factor(country.factor, levels = order.by.rank)]
-```
-
-```{r}
-rank.groups <- lapply(seq(0, 140, by = 20), function(x) c(x, x + 20))
-rank.groups[[length(rank.groups)]][2] <- length(unique(dat$country))
-
-out <- lapply(rank.groups, function(x){
-  toplot <- dat[source == "wopolity" & rank > x[1] & rank <= x[2]]$country
-  ggplot(dat[country %in% toplot], 
-         aes(x = country.factor, y = risk_in_2020_21, color = source)) + 
-  geom_point() + 
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
-    labs(title = paste("Ranks", x[1]+1, "to", x[2]))
-})
-
-out
-```
-
-
-```{r, results='asis'}
-
-pdf(file="w_and_wo_polity.pdf")  
-invisible(lapply(out, print))
-dev.off() 
 ```
 
 
