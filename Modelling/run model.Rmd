@@ -1,0 +1,285 @@
+---
+title: "SRA 2018-based"
+author: "Julia Levine, Chad Hazlett"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(glmnet)
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(reshape2)
+library(knitr)
+# library(rworldmap)
+# library(Hmisc)
+```
+\newpage
+
+# Dataset Documentation
+
+The prepared data-set was built using the following sources:
+
+- [Varieties of Democracy](https://www.v-dem.net/en/data/data-version-9/), which is updated annually. 
+- Polity data 
+- [World Development Indicators](https://datacatalog.worldbank.org/dataset/world-development-indicators), which are updated quarterly. 
+- [Uppsala Conflict Data Program](https://ucdp.uu.se/downloads/), which is updated annually. 
+- [State of the World Report](https://earlywarningproject.ushmm.org/), which is updated annually.
+- [Coup Data](https://www.jonathanmpowell.com/coup-detat-dataset.html): this website contains the most recent updates from Powell and Thyne
+- CIA Factbook, which is updated annually. 
+
+The variables taken from each data-set and notes on missingness are discussed below.
+
+## Varieties of Democracy Data
+
+### Variables
+
+- v2elrstrct - candidate restriction
+- v2psparban_ord - party ban
+- v2psoppaut_ord - barriers to parties
+- v2jureform_ord - judicialreform
+- v2clrelig_ord - religiousfreedom
+- v2xcl_disc - freediscussion
+- v2clkill_ord - political killing approved
+- v2cldmovem_ord - free movement for men
+- v2cldmovew_ord - free movement for women
+- v2clsocgrp_ord - social inequality
+- v2clrgunev_ord - even civil rights
+- v2csreprss_ord - repress civil soc
+- v2pepwrsoc_ord - social power dist
+- v2pepwrsoc_ord - minority rule
+- v2pepwrses - SES power dist
+- e_migdppc - GDP per capita, missing since 2017.Filled in using the WDI.
+- e_migdpgro - GDP per capita growth, missing since 2017. Filled in using the WDI.
+- e_mipopula - population size, missing since 2017. Filled in using the WDI.
+- e_cow_exports - country exports, missing since 2017. Filled in using the WDI.
+- e_cow_imports- country imports, missing since 2017. Filled in using the WDI.
+
+### Notes
+
+The following variables have not been updated since 2016: e_migdppc, e_mgdpgro, e_mipopula, e_cow_exports, and e_cow_imports. These have been filled in using the WDI data. 
+
+## Polity
+
+- The polity2 and durable variables are no longer updated starting in 2019.
+
+
+
+## World Development Indicators
+
+### Variables
+
+- NE.TRD.GNFS.ZS - Trade (% of GDP)
+- NY.GDP.PCAP.PP.KD - GDP per capita, PPP (constant 2005 intl $)
+- NY.GDP.PCAP.KD - GDP per capita (constant 2000 US$)
+- NY.GDP.MKTP.KD.ZG - GDP growth (annual %)
+- FP.CPI.TOTL.ZG - Inflation, consumer prices (annual %)
+- SP.POP.TOTL- Population, total
+- SP.DYN.IMRT.IN - Infant mortality rate
+
+### Notes
+
+Infant mortality rate has not yet been updated for 2018 (as of 7/1/19), so these values have been carried forward from 2017. However, because the infant mortality rate data was not updated at the time of building the 2016-2017 data-set, these values are actually carried forward from 2015. Data are now available for 2016 and 2017 if we wished to update that, however, it may change our forecasts. 
+
+## Uppsala Conflict Data Program
+
+### Variables
+
+- battle-deaths
+
+### Notes
+
+- In previous years, we only took the last battle-death observation in a year for each country. In these updates, we sum the total number of battle-deaths each year for each country.
+- We also take conflict types 3 and 4 (internal and internationalized internal), where in previous years, we also included conflict types 2 (interstate) from UCDP. 
+
+## State of the World Report
+
+This annual report published on the EWP website is used to update data on mass killings, state-led, and non state-led. 
+
+### Variables
+
+- anymk.start.1
+- anymk.start.2window
+- anymk.ongoing
+- anymk.ever
+
+### Notes
+
+The only update is the ending of the Sudan event, backdated to end in 2016.
+
+## Coup Data
+
+### Variables
+
+- coup.try.5yr - indicator variable for whether a coup was attempted within the last five years
+
+### Notes
+
+There were no new coups in 2018, but Gabon and Sudan both had coups in 2019.
+
+## CIA Factbook
+
+The CIA Factbook is used to fill in data on population size, trade-share, and GDP per capita growth. Because the CIA Factbook has not been updated for 2018, countries that were missing these variables have been filled in with their 2017 values. This is a temporary fix until the CIA Factbook is updated later in 2019. 
+
+\newpage
+
+The Model 
+
+```{r}
+
+outcomenames <- c("anymk.start.1", "anymk.start.2window")
+
+# Note change to anymk.ongoing and anymk.ever (from mkl.ongoing and mkl.ever)
+predictornames <- c("anymk.ongoing","anymk.ever",
+                    "reg.afr", "reg.eap", "reg.eur", "reg.mna", "reg.sca", 
+                    "countryage.ln", "popsize.ln.combined", "imr.sqrt", 
+                    "gdppcgrowth.combined", "ios.iccpr1","includesnonstate",
+                    "minorityrule", "elf.ethnic", "battledeaths.ln",
+                    "candidaterestriction", "partyban","judicialreform",
+                    "religiousfreedom", "pol_killing_approved",
+                    "freemove_men4","freemove_women4", "freediscussion",
+                    "social_inequality","even_civilrights","repress_civilsoc",
+                    "social_power_dist", "ses_power_dist","tradeshare.ln.combined",
+                    "coup.try.5yr")
+```
+
+
+
+```{r}
+source("functions_used/create_datasets.R")
+source("functions_used/run_model.R")
+source("functions_used/format_results.R")
+
+```
+
+
+
+
+## Running the model using 2019 data
+
+```{r, eval = FALSE}
+dat <- fread("../Make data/output/prepared2019predictors-2020-08-10.csv")
+
+
+# run the model and save the output
+# base_years <- c("2016", "2017", "2018")
+base_years <- c("2018", "2019")
+results <- lapply(base_years, 
+                  function(x) format_results(dat = dat, base_year = x))
+names(results) <- paste0("base", base_years)
+list2env(results, .GlobalEnv)
+
+
+for(i in 1:length(results)){
+  write.csv(results[[i]][1], paste("results/", names(results)[i], "-run-", 
+                       Sys.Date(),".csv" , sep = ""), 
+            row.names = FALSE)
+}
+
+for(i in 1:length(results)){
+  write.csv(results[[i]][2], paste("results/", names(results)[i], "-coeffs-run-", 
+                       Sys.Date(),".csv" , sep = ""), 
+            row.names = FALSE)
+}
+
+for(i in 1:length(results)){
+    cv.glmnet <- results[[i]][[3]]
+  save(cv.glmnet, predictornames, file=paste("results/", names(results)[i], "-cv.glmnet-", 
+                       Sys.Date(),".Rdata" , sep = ""))
+}
+
+
+```
+### include polity2 and durable variables
+
+```{r}
+predictornames <- c(predictornames, "polity2.fl.2","polity2.fl.3", "durable.ln")
+
+dat <- fread("../Make data/output/prepared2019predictors-2020-08-10.csv")
+
+
+# run the model and save the output
+base_years <- c("2019")
+results <- lapply(base_years, 
+                  function(x) format_results(dat = dat, base_year = x))
+names(results) <- paste0("base", base_years)
+list2env(results, .GlobalEnv)
+
+
+for(i in 1:length(results)){
+  write.csv(results[[i]][1], paste("results/", names(results)[i], "-run-", 
+                       Sys.Date(),"wpolity.csv" , sep = ""), 
+            row.names = FALSE)
+}
+
+for(i in 1:length(results)){
+  write.csv(results[[i]][2], paste("results/", names(results)[i], "-coeffs-run-", 
+                       Sys.Date(),"wpolity.csv" , sep = ""), 
+            row.names = FALSE)
+}
+
+for(i in 1:length(results)){
+    cv.glmnet <- results[[i]][[3]]
+  save(cv.glmnet, predictornames, file=paste("results/", names(results)[i], "-cv.glmnet-", 
+                       Sys.Date(),"wpolity.Rdata" , sep = ""))
+}
+
+```
+
+
+
+#### compare predicted risk with and without polity vars
+
+
+
+
+
+```{r}
+wpolity <- fread("results/base2019-run-2020-08-19wpolity.csv")
+wopolity <- fread("results/base2019-run-2020-08-18.csv")
+
+dat <- list(wpolity, wopolity)
+dat <- lapply(dat, function(x) subset(x, select = c("country", "risk_in_2020", "risk_in_2020_21")))
+names(dat) <- c("wpolity", "wopolity")
+dat <- lapply(1:length(dat), function(x) dat[[x]][, source := names(dat)[x]])
+dat <- rbindlist(dat)
+
+setkey(dat, source, risk_in_2020_21)
+
+dat[, rank := .N:1, by = "source"]
+dat[, country.factor := paste0("r", rank[source == "wopolity"], "_", country), by = "country"]
+
+order.by.rank <- sapply(c(1:162), function(x) unique(grep(paste0("r", x, "_"), dat$country.factor, value = T)))
+dat[, country.factor := factor(country.factor, levels = order.by.rank)]
+```
+
+```{r}
+rank.groups <- lapply(seq(0, 140, by = 20), function(x) c(x, x + 20))
+rank.groups[[length(rank.groups)]][2] <- length(unique(dat$country))
+
+out <- lapply(rank.groups, function(x){
+  toplot <- dat[source == "wopolity" & rank > x[1] & rank <= x[2]]$country
+  ggplot(dat[country %in% toplot], 
+         aes(x = country.factor, y = risk_in_2020_21, color = source)) + 
+  geom_point() + 
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+    labs(title = paste("Ranks", x[1]+1, "to", x[2]))
+})
+
+out
+```
+
+
+```{r, results='asis'}
+
+pdf(file="w_and_wo_polity.pdf")  
+invisible(lapply(out, print))
+dev.off() 
+```
+
+
+
