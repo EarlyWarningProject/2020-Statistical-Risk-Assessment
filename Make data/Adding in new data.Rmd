@@ -768,18 +768,16 @@ This section looks at remaining missingness and attempts to fill in values.
 # select variables we would like to check missingness for
 
   predictornames <- c("anymk.ongoing","anymk.ever",
-                      "reg.afr", "reg.eap", "reg.eur", "reg.mna", "reg.sca", 
-                      "countryage.ln", "popsize.ln.combined", "imr.sqrt",
-                      "gdppcgrowth.combined", "ios.iccpr1","includesnonstate",
-                      "durable.ln","minorityrule", "elf.ethnic", 
-                      "battledeaths.ln", "candidaterestriction", "partyban", 
-                      "judicialreform", "religiousfreedom", 
-                      "pol_killing_approved", "freemove_men4", 
-                      "freemove_women4", "freediscussion",
-                      "social_inequality","even_civilrights","repress_civilsoc", 
-                      "social_power_dist", "ses_power_dist",
-                      "tradeshare.ln.combined", 
-                      "coup.try.5yr", "polity2.fl.2","polity2.fl.3")
+                    "reg.afr", "reg.eap", "reg.eur", "reg.mna", "reg.sca", 
+                    "countryage.ln", "popsize.ln.combined", "imr.sqrt", 
+                    "gdppcgrowth.combined", "ios.iccpr1","includesnonstate",
+                    "minorityrule", "elf.ethnic", "battledeaths.ln",
+                    "candidaterestriction", "partyban","judicialreform",
+                    "religiousfreedom", "pol_killing_approved",
+                    "freemove_men4","freemove_women4", "freediscussion",
+                    "social_inequality","even_civilrights","repress_civilsoc",
+                    "social_power_dist", "ses_power_dist","tradeshare.ln.combined",
+                    "coup.try.5yr")
 
 # look for missingness in the update years for select variables
 
@@ -1064,9 +1062,13 @@ In the tables presented for each variable, I show the value that is filled in fo
     look_na(x, dat = dat[country_name!="Taiwan"]))
   names(look.na.vars) <- check$var
   look.na.vars
-  
-```
 
+# drop intermediate variables
+  
+  outcomenames <- c("anymk.start.1", "anymk.start.2window")
+  dat <- subset(dat, select = c("sftgcode", "country_name", "year", "COWcode", 
+                                outcomenames, predictornames))
+```
 
 
 ```{r}
